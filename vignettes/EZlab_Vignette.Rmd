@@ -1,0 +1,78 @@
+---
+title: "EZlab_Vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{EZlab_Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+The EZlab functions are created to simplify data frame manipulation for large data sets such as proteomics. 
+
+Install required packages.
+```{r}
+library(tidyverse)
+library(matrixStats)
+library(reshape2)
+```
+Call EZlab package
+```{r setup}
+library(EZlab)
+```
+Rename raw_data as df
+```{r}
+df = raw_data
+```
+Compute mean and std for each sample. 
+```{r}
+df <- EZmeanAndstd(df, c('SAMPLE.1', 'SAMPLE.1.1', 'SAMPLE.1.2'), "SAMPLE1")
+df <- EZmeanAndstd(df, c('SAMPLE.2', 'SAMPLE.2.1', 'SAMPLE.2.2'), "SAMPLE2")
+df <- EZmeanAndstd(df, c('SAMPLE.3', 'SAMPLE.3.1', 'SAMPLE.3.2'), "SAMPLE3")
+df <- EZmeanAndstd(df, c('SAMPLE.4', 'SAMPLE.4.1', 'SAMPLE.4.2'), "SAMPLE4")
+df <- EZmeanAndstd(df, c('SAMPLE.5', 'SAMPLE.5.1', 'SAMPLE.5.2'), "SAMPLE5")
+```
+Compute fold change for each sample.
+```{r}
+df <- EZfoldChange(df, "SAMPLE1")
+df <- EZfoldChange(df, "SAMPLE2")
+df <- EZfoldChange(df, "SAMPLE3")
+df <- EZfoldChange(df, "SAMPLE4")
+df <- EZfoldChange(df, "SAMPLE5")
+```
+Run filter on all samples. 
+```{r}
+df <- EZfilter(df, "SAMPLE1")
+df <- EZfilter(df, "SAMPLE2")
+df <- EZfilter(df, "SAMPLE3")
+df <- EZfilter(df, "SAMPLE4")
+df <- EZfilter(df, "SAMPLE5")
+```
+Delete genes that do not meet the filter criteria. Here, we are deleting genes in which the "COVAR" value is greater than 3 and only keeping values with "COVAR" less than and equal to 3. 
+```{r}
+df <- subset(df, COVAR <= 3)
+```
+Create new data frame with log2 values only.
+```{r}
+df1 <- select(df,ID,LOG2_SAMPLE1,LOG2_SAMPLE2,LOG2_SAMPLE3,LOG2_SAMPLE4,LOG2_SAMPLE5)
+```
+Use melt function from reshape2 package to create a column for gene ID matched with its log2 value. This data frame is used to generate a heat map. Ignore errors at this step. 
+```{r}
+melt_df <- melt(df1)
+```
+Generate heat map. 
+```{r}
+EZPlot <- function(data, x, y) {
+  x <- enquo(x)
+  y <- enquo(y)
+  ggplot(melt_df, aes(!!x, !!y)) +
+    geom_tile(aes(fill = value), colour = "white") +
+    scale_fill_gradient(low = "white", high = "blue")
+}
+EZPlot(melt_df, variable, ID)
+```
